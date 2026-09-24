@@ -120,8 +120,9 @@ Tab renames only happen on a status *change*, not per animation frame, so a
 working pane's per-frame border updates never touch the tab label.
 
 All reported titles carry a short TTL, so if the daemon dies, any pane it
-was animating returns to normal within about a second on its own — no
-stuck spinners; the next `pane.agent_status_changed` event restarts it.
+was animating returns to normal within 1-3 seconds on its own (the TTL is
+three frame intervals, floored at one second). The next
+`pane.agent_status_changed` event restarts it.
 
 ## Limitations
 
@@ -160,9 +161,9 @@ herdr plugin unlink mozart2234.agent-pulse    # removes it entirely
 ```
 
 Disabling or unlinking does not by itself stop an already-running daemon
-process; killing it (or waiting for its next report to hit a closed
-connection) clears any titles/tab renames it owned, since it runs the same
-graceful-shutdown path as SIGTERM/SIGINT.
+process. SIGTERM/SIGINT or a closed event subscription end the main loop and
+run the cleanup that clears titles and restores tab labels. Individual request
+failures are logged and ignored, so a failed report does not stop the daemon.
 
 ## Contributing
 

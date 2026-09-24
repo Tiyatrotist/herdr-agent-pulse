@@ -465,12 +465,9 @@ class Daemon(object):
             response = self._try_request("tab.get", {"tab_id": tab_id})
             if response is None:
                 return False
-            # Real response: {"tab": {...}, "type": "tab_info"} -- the tab
-            # fields are wrapped, not top-level (verified against a live
-            # `herdr tab get` capture; see tests/fixtures). Reading a
-            # top-level "label" here silently returned "" and cached that
-            # empty string as the "original" label, which is exactly what
-            # destroyed 6 real tab names in the first live run.
+            # `tab.get` wraps the tab fields under "tab", not at the top
+            # level. Reading a top-level "label" would yield an empty original
+            # label, so it could not be restored safely later.
             label = response.get("tab", {}).get("label")
             original = core.strip_known_prefix(label) if label else ""
             if not original:

@@ -13,8 +13,9 @@ platforms = ["macos", "linux"]
 command = ["bin/ensure-daemon"]
 
 # Fires on every agent status transition (up to 32 concurrent, unsupervised,
-# no timeout). ensure-daemon must stay fast: it only checks whether the
-# daemon's pidfile is alive and exits immediately either way.
+# no timeout). ensure-daemon must stay fast: it checks whether the daemon's
+# pidfile is alive, starts the daemon when it is missing or stale, and otherwise
+# exits immediately.
 [[events]]
 on = "pane.agent_status_changed"
 command = ["bin/ensure-daemon"]
