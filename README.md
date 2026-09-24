@@ -3,7 +3,7 @@
 A [herdr](https://github.com/herdrdev/herdr) plugin that makes coding-agent
 activity visible at a glance: an animated pane-border title while an agent
 works, a state icon on the tab label, and a one-line summary on the tab bar.
-No Ghostty changes, no herdr source changes.
+Works with any host terminal and needs no changes to herdr itself.
 
 - An animated pane-border title while an agent is working (a spinner frame
   plus its current task text, read from the pane's own terminal title).
