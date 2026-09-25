@@ -440,13 +440,16 @@ class RunLoopTests(DaemonTestCase):
                 "data": {"pane_id": "w1:p1", "agent_status": "blocked"},
             }
         )
-        # Real wall-clock pause (fps=4 -> one frame is 0.25s): give the
-        # running loop a chance to actually tick and report before EOF,
-        # since the socket's own recv() timeouts are real wall-clock time
-        # regardless of any injected clock.
         import time as _time
 
-        _time.sleep(0.4)
+        deadline = _time.monotonic() + 2.0
+        while _time.monotonic() < deadline:
+            if any(c.get("title") == "✋ needs you" for c in self.report_calls()):
+                break
+            _time.sleep(0.01)
+        else:
+            self.fail("daemon did not report the pushed blocked status before timeout")
+
         self.server.close_subscription()
         thread.join(timeout=2)
         self.assertFalse(thread.is_alive())
