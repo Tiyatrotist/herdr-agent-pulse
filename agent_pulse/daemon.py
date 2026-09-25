@@ -285,6 +285,13 @@ class Daemon(object):
         if self.cfg.tab_icons:
             for tab_id, _original in self.tab_cache.items():
                 self._restore_tab_label(tab_id)
+        # The tab-bar command reads this file independently of the daemon.
+        # Clear it on a clean shutdown so the last active counts cannot linger.
+        tmp_path = self.summary_path + ".tmp"
+        with open(tmp_path, "w"):
+            pass
+        os.replace(tmp_path, self.summary_path)
+        self._last_summary = ""
         if self._subscription is not None:
             self._subscription.close()
 
