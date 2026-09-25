@@ -57,6 +57,11 @@ def frame_ttl_ms(fps):
     return int(max(1000, 3 * interval_ms))
 
 
+def next_frame_deadline(now, frame_interval):
+    """Schedule one future frame from now, skipping any missed frame slots."""
+    return now + frame_interval
+
+
 def build_subscriptions(pane_ids):
     """Lifecycle events (no pane_id needed) plus one status filter per known pane."""
     subscriptions = [
@@ -264,7 +269,7 @@ class Daemon(object):
                         self.tick(tick_index)
                     except Exception as err:  # keep the loop alive; log and move on
                         self.log("tick {} raised {}: {}".format(tick_index, type(err).__name__, err))
-                    next_frame_at += frame_interval
+                    next_frame_at = next_frame_deadline(now, frame_interval)
                 if now >= next_task_refresh_at:
                     try:
                         self._refresh_task_text()
