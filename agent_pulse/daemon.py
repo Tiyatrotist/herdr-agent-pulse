@@ -221,6 +221,7 @@ class Daemon(object):
         result = self.client.request("pane.list", {})
         for info in result.get("panes", []):
             self.panes[info["pane_id"]] = PaneRecord.from_pane_info(info)
+        self._reconcile_cached_tab_labels()
         self._resubscribe()
 
     def run(self):
@@ -427,6 +428,24 @@ class Daemon(object):
             record.task_text = response.get("pane", {}).get("terminal_title_stripped")
 
     # -- tab labels --
+
+    def _reconcile_cached_tab_labels(self):
+        """Repair tab-label cache left behind by an unclean daemon exit."""
+        if not self.cfg.tab_icons:
+            return
+
+        statuses_by_tab = {}
+        for record in self.panes.values():
+            if record.tab_id:
+                statuses_by_tab.setdefault(record.tab_id, []).append(record.status)
+
+        for tab_id, _original in self.tab_cache.items():
+            statuses = statuses_by_tab.get(tab_id)
+            if not statuses:
+                self.tab_cache.pop(tab_id)
+                continue
+            if core.aggregate_tab_status(statuses) == "idle":
+                self._restore_tab_label(tab_id)
 
     def _update_tab_labels(self):
         if not self.cfg.tab_icons:
