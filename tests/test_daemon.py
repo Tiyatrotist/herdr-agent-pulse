@@ -410,6 +410,23 @@ class SummaryFileTests(DaemonTestCase):
             content = fh.read()
         self.assertEqual(content, "\n")
 
+    def test_shutdown_clears_stale_summary(self):
+        self.server.set_handler(
+            "pane.list",
+            lambda params: {"panes": [pane_info("w1:p1", status="working")]},
+        )
+        self.d.bootstrap()
+        self.d.tick(1)
+
+        summary_path = os.path.join(self.state_dir, "summary.txt")
+        with open(summary_path) as fh:
+            self.assertNotEqual(fh.read(), "")
+
+        self.d._shutdown()
+
+        with open(summary_path) as fh:
+            self.assertEqual(fh.read(), "")
+
 
 class RunLoopTests(DaemonTestCase):
     def setUp(self):
