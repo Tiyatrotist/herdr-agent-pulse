@@ -354,6 +354,27 @@ class TabRenameTests(DaemonTestCase):
         self.assertEqual(renames[-1]["label"], "my-tab")
         self.assertIsNone(self.tab_cache.get("t1"))
 
+    def test_bootstrap_restores_cached_label_for_idle_tab(self):
+        self.tab_cache.set("t1", "my-tab")
+        self.server.set_handler(
+            "pane.list",
+            lambda params: {"panes": [pane_info("w1:p1", tab_id="t1", status="idle")]},
+        )
+
+        self.d.bootstrap()
+
+        self.assertEqual(self.rename_calls(), [{"tab_id": "t1", "label": "my-tab"}])
+        self.assertIsNone(self.tab_cache.get("t1"))
+
+    def test_bootstrap_drops_cache_entry_for_missing_tab(self):
+        self.tab_cache.set("missing", "old-tab")
+        self.server.set_handler("pane.list", lambda params: {"panes": []})
+
+        self.d.bootstrap()
+
+        self.assertEqual(self.rename_calls(), [])
+        self.assertIsNone(self.tab_cache.get("missing"))
+
     def test_restart_after_crash_never_stacks_icons(self):
         # Simulate a previous run that renamed the tab but crashed before
         # restoring it: the server-side label is already prefixed, and our
