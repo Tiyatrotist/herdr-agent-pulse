@@ -30,6 +30,9 @@ class PureHelperTests(unittest.TestCase):
         self.assertEqual(daemon.frame_ttl_ms(8), 1000)  # 3 * 125 = 375 -> floored to 1000
         self.assertEqual(daemon.frame_ttl_ms(1), 3000)  # 3 * 1000 = 3000
 
+    def test_next_frame_deadline_skips_missed_frames_after_stall(self):
+        self.assertEqual(daemon.next_frame_deadline(5.0, 0.25), 5.25)
+
     def test_build_subscriptions_includes_lifecycle_and_per_pane_status(self):
         subs = daemon.build_subscriptions(["w1:p1", "w1:p2"])
         types = [s["type"] for s in subs]
