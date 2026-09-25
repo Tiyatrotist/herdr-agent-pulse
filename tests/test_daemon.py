@@ -49,6 +49,55 @@ class PureHelperTests(unittest.TestCase):
         self.assertEqual(len(subs), 3)
 
 
+class FrameSchedulingTests(unittest.TestCase):
+    def test_run_skips_missed_frames_after_stall(self):
+        clock = {"now": 0.0}
+
+        class StallingSubscription:
+            def __init__(self):
+                self.polls = 0
+
+            def poll(self, _timeout):
+                self.polls += 1
+                if self.polls == 1:
+                    clock["now"] = 5.0
+                    return None
+                if self.polls == 2:
+                    return None
+                raise client_module.SubscriptionClosed()
+
+            def close(self):
+                pass
+
+        subscription = StallingSubscription()
+
+        class Client:
+            def request(self, method, _params):
+                if method == "pane.list":
+                    return {"panes": []}
+                return {}
+
+            def subscribe(self, _subscriptions):
+                return subscription
+
+        state_dir = tempfile.mkdtemp(prefix="apstate-")
+        cfg = config_module.Config(theme="iterm", fps=4, tab_icons=False)
+        d = daemon.Daemon(
+            Client(),
+            cfg,
+            daemon.TabLabelCache(state_dir),
+            log=lambda _line: None,
+            state_directory=state_dir,
+            now=lambda: clock["now"],
+        )
+        ticks = []
+        d.tick = ticks.append
+
+        d.run()
+
+        self.assertEqual(ticks, [1])
+
+
 class TabLabelCacheTests(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp(prefix="apstate-")
