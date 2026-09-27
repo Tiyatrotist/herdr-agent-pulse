@@ -374,15 +374,9 @@ class Daemon(object):
 
     def _report_working_and_blocked(self, tick_index):
         for record in self.panes.values():
-            if record.status == "working":
+            if record.status in ("working", "blocked"):
                 title = core.border_title(
-                    self.cfg.theme, "working", tick_index, record.task_text
-                )
-                self._report_title(record, title, frame_ttl_ms(self.cfg.fps))
-                record.reporting = True
-            elif record.status == "blocked":
-                title = core.border_title(
-                    self.cfg.theme, "blocked", tick_index, record.task_text
+                    self.cfg.theme, record.status, tick_index, record.task_text
                 )
                 self._report_title(record, title, frame_ttl_ms(self.cfg.fps))
                 record.reporting = True
