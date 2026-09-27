@@ -176,6 +176,44 @@ class BootstrapTests(DaemonTestCase):
         )
 
 
+class ResubscribeReconciliationTests(DaemonTestCase):
+    def test_bootstrap_reconciles_status_changed_between_snapshot_and_subscribe(self):
+        calls = {"pane_list": 0}
+
+        def pane_list(_params):
+            calls["pane_list"] += 1
+            status = "working" if calls["pane_list"] == 1 else "idle"
+            return {"panes": [pane_info("w1:p1", status=status)]}
+
+        self.server.set_handler("pane.list", pane_list)
+
+        self.d.bootstrap()
+
+        self.assertEqual(calls["pane_list"], 2)
+        self.assertEqual(self.d.panes["w1:p1"].status, "idle")
+
+    def test_resubscribe_reconciles_status_after_subscription_ack(self):
+        snapshots = [
+            {"panes": [pane_info("w1:p1", status="working")]},
+            {"panes": [pane_info("w1:p1", status="blocked")]},
+        ]
+
+        def pane_list(_params):
+            return snapshots.pop(0)
+
+        self.server.set_handler("pane.list", pane_list)
+        self.d.bootstrap()
+        self.assertEqual(self.d.panes["w1:p1"].status, "blocked")
+
+        self.server.set_handler(
+            "pane.list",
+            lambda _params: {"panes": [pane_info("w1:p1", status="idle")]},
+        )
+        self.d._resubscribe()
+
+        self.assertEqual(self.d.panes["w1:p1"].status, "idle")
+
+
 class EventHandlingTests(DaemonTestCase):
     def setUp(self):
         super().setUp()
