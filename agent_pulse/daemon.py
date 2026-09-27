@@ -326,6 +326,27 @@ class Daemon(object):
         pane_ids = list(self.panes.keys())
         self._subscription = self.client.subscribe(build_subscriptions(pane_ids))
         self._subscribed_pane_ids = set(pane_ids)
+        self._reconcile_pane_snapshot()
+
+    def _reconcile_pane_snapshot(self):
+        """Refresh pane state after subscribe so transitions in the gap are not lost."""
+        result = self.client.request("pane.list", {})
+        snapshot = {}
+        for info in result.get("panes", []):
+            pane_id = info["pane_id"]
+            snapshot[pane_id] = info
+            record = self.panes.get(pane_id)
+            if record is None:
+                self.panes[pane_id] = PaneRecord.from_pane_info(info)
+                continue
+            record.tab_id = info.get("tab_id")
+            record.status = info.get("agent_status", "unknown")
+            record.agent = info.get("agent")
+            record.task_text = info.get("terminal_title_stripped")
+
+        for pane_id in list(self.panes):
+            if pane_id not in snapshot:
+                del self.panes[pane_id]
 
     def _topology_dirty(self):
         return set(self.panes.keys()) != self._subscribed_pane_ids
